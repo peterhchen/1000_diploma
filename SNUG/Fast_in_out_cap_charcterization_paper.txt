@@ -1,0 +1,468 @@
+A Fast Methodology Flow for IP Input and Max Output Cap 
+Characterization 
+
+Peter H. Chen, Harrison Liu, Peter Pong, Jim Wang, and Jerry Hong 
+
+Faraday Technology Corporation 
+10-2 Li-Hsin First Road 
+Science-Based Industrial Park 
+Hsinchu, Taiwan 300, ROC 
+
+{pchen, hcliu, pong, jhwang, jhong}@faraday-tech.com 
+
+ABSTRACT 
+
+This paper proposes a fast and generic working methodology flow for Input Cap and Max Output 
+Cap of Intellectual Property (IP), i.e., input cap and max output cap characterization with partial 
+circuit extraction and SPICE simulation. With this Methodology/Algorithm, the run-time is 
+tremendously cut down from weeks into seconds. More than 1500 test cases (counted by pin) are 
+used in combination with 250 Faraday IPs for different technologies to validate the 
+methodology/algorithm, which forms an essential part of Faraday¡¦s MxCAE (IP characterization) 
+methodology flow. 
+
+
+Table Of Contents 
+
+1.0 Introduction ............................................................................................................................................................3
+2.0 Methodology Flow Overview.................................................................................................................................3
+3.0 Partial Circuit Extraction and SPICE Simulation ....................................................................................................4
+3.1 SPICE VCR Control .....................................................................................................................................6
+3.2 Applying Voltage..........................................................................................................................................6
+4.0 Device Extraction for Two Layers of Devices ........................................................................................................7
+4.1 Device Extraction Algorithm .........................................................................................................................8
+4.2 Result Processing ..........................................................................................................................................9
+4.3 Device Extraction Example ...........................................................................................................................9
+5.0 Conclusions ..........................................................................................................................................................11
+6.0 Acknowledgements ..............................................................................................................................................12
+7.0 References ............................................................................................................................................................12
+SNUG Taiwan 2005 2 A Fast Algorithm for IP Input Cap Characterization 
+
+
+1.0 Introduction 
+As IP designs grow bigger, it is very common for IPs to contain more than 500K transistors. The 
+growing number of transistors increases the difficulty for SPICE in solving the circuit matrix, 
+thereby causing the non-convergence problem. However, the time-to-market of IP delivery and 
+ASIC design is critical. As IPs grow bigger and bigger and SPICE simulation run-time grows 
+exponentially, causing an NP (Non-Polynomial) problem, it is impractical to get the input and 
+output cap through the whole IP simulation. Some commercial tools provide I-V curve or circuit 
+simplification to reduce the run-time; however, the accuracy is not good enough and the run-time 
+so reduced is limited and remains a problem for IP simulation. 
+
+With the methodology and algorithm presented in this paper, the run-time for input cap and 
+output cap characterization can be reduced from weeks long to within seconds/minutes. The 
+accuracy of the input cap and output cap is within 90% or above [3, 4, 5]. At Faraday, such runtime and accuracy are acceptable by IP designers. This methodology/algorithm has been 
+successfully implemented and verified as an essential part of Faraday¡¦s MxCAE tool (a Mixed 
+Signal Characterization and Verification Tool at Faraday) to find the maximum loading and 
+input cap [3, 4]. By now, it has been fully verified by all IPs under 0.18 £gm (and below) process 
+
+technology for both regular power and low leakage libraries which contain more than 250 
+released IPs. 
+
+2.0 Methodology Flow Overview 
+Figure 1 shows the methodology flow for finding the input cap and max loading of an IP. It is 
+part of Faraday¡¦s IP characterization (MxCAE) flow. 
+The step of cleaning up SPICE includes removing the correction of the power setup and floating 
+resistors. 
+The analog pin and special IO pin are skipped without characterization. The characterization is 
+only concerned about pins with digital signals. Hence, special IO pins, such as those for 
+reference signal or special resistor configuration, are ignored. 
+
+SNUG Taiwan 2005 3 A Fast Algorithm for IP Input Cap Characterization 
+
+
+Partial Circuit Extraction 
+Analog Pin 
+Special IO Pin 
+Yes 
+No 
+Generate Max Cap Testbench 
+Generate Three Corner IP Libraries 
+Generate SPICE Testbench 
+Circuit Classification 
+(Inverter/Transmission Gate) 
+Clean Up SPICE 
+VNC Parallel Characterization 
+Result Processing 
+Figure 1. Flowchart of Input Cap and Max Loading Search for IPs 
+
+3.0 Partial Circuit Extraction and SPICE Simulation 
+The partial circuit extraction and SPICE simulation are used to find the input cap. 
+
+SNUG Taiwan 2005 4 A Fast Algorithm for IP Input Cap Characterization 
+
+
+DUT: Device Under Test 
+Output Load: Connected Standard Cell(s) 
+Legends: 
+DUT 
+Outpu 
+Load 
+x y 
+V 
+Vdd 
+Mirror Circuit of VCR Switch 
+Cfixed 
+I 
+Switch A Open 
+Switch 
+BClose 
+)( yxiI ¡÷=
+0.3 Vdd 
+0.7 Vdd 
+Cin 
+y 
+x 
+a b 
+VCR: Voltage-Controlled Resistance 
+Figure 2. Mirror Circuit of VCR Switch and Device Under Test 
+
+In Figure 2, the Mirror Circuit of VCR Switch is used to measure the current at x ¡÷ y . Initially, 
+switch A is opened and switch B closed when V ( y)< 0.3 .Vdd and V ( y) > 0.7 .Vdd . It starts to 
+charge IP Under Test (IUT) with current when 0.3.Vdd . V( y) . 0.7 .Vdd (switch A close and 
+switch B open). 
+
+From the charge formula, Q = I . t = V .C , we have the following derivation: 
+From the switch side: 
+
+Q = max(Vb) .Cfixed (1) 
+From the device side: 
+
+0.7Vdd
+Q =¡ì Cin . dV = 0.4Vdd .Cin (2) 
+
+0.3Vdd 
+Where, Cin is the downstream capacitance of device and the loading capacitance. 
+
+From (1) and (2), we have: 
+
+Q = max(Vb) .Cfixed . 0.4Vdd .Cin (3) 
+Therefore, we have: 
+
+Cin . max(Vb) .Cfixed / 0.4Vdd (4) 
+
+Note: The Cfixed (1.5 e-10) should be on a bigger order for DUT to charge and discharge. 
+
+The following Voltage Control Resistances (VCRs) are used to control the switch depending on 
+the input voltages. Figure 3 shows the relations between resistance and voltage. 
+
+SNUG Taiwan 2005 5 A Fast Algorithm for IP Input Cap Characterization 
+
+
+Switch B 
+.1.0 105 
+Switch A 
+£[.1.0 105 
+£[.1.0 10.5 
+Legends: 
+R: Resistance ( . ) 
+V: Voltage (V) 
+0.7VP0.3VP VP 0.3VP 0.7VP VP 
+
+V 
+R 
+£[£[..5100.1V 
+R 
+Figure 3. VCRs for Switch A and Switch B 
+
+3.1 SPICE VCR Control 
+The SPICE VCR command will be used for Piecewise Linearity (PWL). VCR controls in a time-
+independent manner whether to open or to close the switch depending on the applied voltage. 
+
+Gxxx n+ n-VCR PWL (1) in+ in- <DELTA=val> <SCALE=val> 
+
++ <M=val> <TC1=val> <TC2=val> x, y 
++ <IC=val> <SMOOTH=val> 
+The following shows an example of VCR operation between node a and node b in Figure 2 and 
+Figure 5. The switch A is opened before and after the operating voltages of 0.3VP and 0.7VP, 
+and closed between the operating voltages f 0.3VP and 0.7VP. The switch B is closed at before 
+and after 0.3Vp and 0.7VP and closed otherwise. 
+
+grb a_a_a b_b_b vcr pwl(1) CLK gnd 
+
++ 0.00,1.0e+15 'IPCVP*0.3-0.001',1.0e+15 
++ 'IPCVP*0.3',1.0e-05 'IPCVP*0.7',1.0e-05 
++ 'IPCVP*0.7+0.001',1.0e+15 IPCVP,1.0e+15 
+3.2 Applying Voltage 
+Figure 4 shows the voltage VP is applied with a slope between 1 and 4 nsec. 
+
+Vx x 0 PWL(0n sv 1n sv 4ns ev) 
+Where sv = VP and ev = 0. 
+
+SNUG Taiwan 2005 6 A Fast Algorithm for IP Input Cap Characterization 
+
+
+Switch A Close 
+Switch B Open 
+t 
+V 
+VP 
+4 nsec 1 nsec 
+0.3VP 
+0.7VP 
+Figure 4. Applied Voltage 
+
+As shown in Figure 5, the applied voltage drops gradually from VP to 0 between 1 and 4 nsec. 
+Switch A is closed and switch B opened between 0.7VP and 03VP, and the current starts to 
+charge IUT with I (x ¡÷ y). 
+
+IUT: IP Under Test 
+Cin: First Two Layers of Devices of IPs 
+Legends: 
+IUT 
+x y 
+V 
+Vdd 
+Mirror Circuit of VCR Switch 
+Cfixed 
+I 
+Switch A Close 
+Switch 
+B Open 
+)( yxiI ¡÷=
+0.3 Vdd 
+0.7 Vdd 
+Cin 
+y 
+x 
+¡K 
+¡K 
+a b 
+Figure 5. Switch A Close and Switch B Open for IP Under Test 
+
+4.0 Device Extraction for Two Layers of Devices 
+The first two layers of devices are extracted to represent the input capacitance of entire IPs. The 
+effects from the third layer to the output pins of IPs are neglected, similar to standard cell 
+characterization. In standard cell characterization, only the device (first layer) is considered, the 
+second layer being represented with an output loading. 
+
+There are two kinds of circuit recognition for the input pin, i.e., double inverter and transmission 
+gate. For correct circuit extraction, both circuits need be recognized first. The power or ground 
+intended by designers should also be considered. Figures 6 and 7 show the double layers of 
+inverter and transmission gate. 
+
+SNUG Taiwan 2005 7 A Fast Algorithm for IP Input Cap Characterization 
+
+
+Inverter 
+(Level-2) 
+Inverter 
+(Level-1) 
+S 
+D 
+S 
+D 
+G 
+¡K 
+VSL 
+¡K VCC 
+GND 
+Figure 6. Two Layers of Inverters 
+
+¡K 
+
+
+VIN 
+
+
+¡K 
+
+¡K 
+
+
+Transmission gate Capacitance 
+(Level-1) (Level-2) 
+
+Figure 7. Transmission Gate and Capacitance 
+
+
+Note 1: The transmission gate can be CMOS or just NMOS or PMOS. 
+Note 2: During the extraction, the gate port on the transmission gate is set to Voltage High if it is
+an NMOS and set to ground if it is a PMOS. However, in cases where the input pin is disabled, 
+the gate port will be tied to high or ground. 
+Note 3: In order to prevent DC path error caused by device floating, the output of the second-
+level device has to be disconnected and tied to high or low during the device extraction. In the 
+second-level inverter, if S (Source) or D (Drain) has the same name as the substrate (B), then the 
+S or D has to be tied to high for PMOS and tied to low for NMOS. 
+
+
+4.1 Device Extraction Algorithm 
+The first level of input circuit contains the inverter or transmission gate. If the first level of input 
+gate is the transmission gate, the second layer will be followed by capacitance. 
+
+To store the level-1 device code: 
+
+1. Loop all the input pins and IO pins. 
+2. If the input is connected to gate, then mark the cell type to inverter cell and store the SPICE 
+code. 
+3. If the input is connected to source or drain, then mark the cell type to transmission gate and 
+store the SPICE code. 
+To search for the input for the level-2 device: 
+
+1. Loop all the input pins and IO pins. 
+SNUG Taiwan 2005 8 A Fast Algorithm for IP Input Cap Characterization 
+
+
+2. For each level-2 device: If the level-1 cell type is an inverter, connect the output of level-1 
+devices to the gate of level-2 devices. Pull appropriate High (VCCA, VCCK, VCC33A, 
+VCC18A, etc) or Low (GNDA, GNDK) to the source or drain of level-2 devices. To find the 
+appropriate power level: If designer already specify the power level, such as VCC33A or 
+VCC18A for 3.3V or 1.8 V, respectively, then use the designer¡¦s value; otherwise, use the 
+device naming rule (N_33_LL, N_33_G2) to determine the power level. (Figure 6) 
+3. For level-2 device: If the level-1 cell type is a transmission gate, then the level-2 device 
+should be a capacitor: One of the terminals should be connected to level-1 transmission gate. 
+Ground the other terminal of level-2 device. (Figure 7) 
+Note that some pins (TA, TB, TC) are reserved by Faraday for resistance testing purpose (to 
+determine the voltage level, for example) in some IPs (such as Band Gap for stable reference 
+voltage). Those pins are not characterized and will be partially or totally burned in the final 
+delivery. The SPICE netlist should be clean up for TA, TB, and TC during the SPICE code 
+cleanup. 
+
+4.2 Result Processing 
+If HSPICE fails to get the result with current timing step, it automatically shrinks the timing step 
+and reruns until the job is concluded. The final result is listed in the *.lis file and the *.mtN file
+(where N = 0, 1, 2, ¡K). The *.mtN contains the final input capacitance, in which the N is figured 
+out by parsing and counting from the SPICE result file. 
+The HSPICE command CONVERGE invokes different methods to solve non-convergence 
+problems: 
+CONVERGE = -1: Use with DCON = -1, to disable auto-convergence. 
+CONVERGE = 0: auto-convergence (default). 
+CONVERGE = 1: Uses the Damped Pseudo Transient algorithm. If simulation does not
+converge within the amount of CPU time (set in the CPTIME control option), then simulation 
+halts. 
+CONVERGE = 2: Uses a combination of DCSTEP and GMINDC ramping. Not used in the auto-
+convergence flow. 
+CONVERGE = 3: Invokes the source-stepping method. Not used in the auto-convergence flow. 
+CONVERGE = 4: Uses the GMATH ramping method. Even you did not set it in an
+.OPTION statement, the CONVERGE option activates if a matrix floating-point overflows, or if
+HSPICE reports a time step too small error. Default = 0. If a matrix floating-point overflows, 
+CONVERGE = 1.
+
+
+4.3 Device Extraction Example 
+The following demonstrates the extracted SPICE code for a Best Corner of an ADC: 
+
+* Spice Net List: adc020ha0l 
+SNUG Taiwan 2005 9 A Fast Algorithm for IP Input Cap Characterization 
+
+
+********************************************** 
+
+* Tran Test 
+**********************************************
+.tran 0.001ns 7ns 
+**********************************************
+* Probe 
+**********************************************
+.meas tran vc max v(b_b_b, gnd) 
+.meas cpin_A_0_0 param='(vc * CFIXED)/(0.4 * VP)' 
+**********************************************
+* Control Accuracy 
+**********************************************
+.option post captab nopage interp
+.option CONVERGE=1 
+.option GMINDC=1.E-12 
+********************************************** 
+
+* Parameters 
+********************************************** 
+.param CFIXED = 1.0e-14 
+.param IPCVP = VP 
+.param sv = VP 
+.param ev = 0 
+.param VP = 1.98 
+********************************************** 
+* Mirror Circuit of VCR Switch 
+********************************************** 
+vameter x CLK dc 0 
+* current source between node of Node a_a_a 
+gi a_a_a gnd cur='i1(vameter)' 
+ccb b_b_b gnd CFIXED 
+gra a_a_a gnd vcr pwl(1) CLK gnd 
++ 0.00,1.0e-05 'IPCVP*0.3-0.001',1.0e-05 
++ 'IPCVP*0.3',1.0e+15 'IPCVP*0.7',1.0e+15 
++ 'IPCVP*0.7+0.001',1.0e-05 IPCVP,1.0e-05 
+grb a_a_a b_b_b vcr pwl(1) CLK gnd 
++ 0.00,1.0e+15 'IPCVP*0.3-0.001',1.0e+15 
++ 'IPCVP*0.3',1.0e-05 'IPCVP*0.7',1.0e-05 
++ 'IPCVP*0.7+0.001',1.0e+15 IPCVP,1.0e+15 
+********************************************** 
+* Stimulus 
+********************************************** 
+Vx x 0 PWL(0n sv 1n sv 4ns ev) 
+SNUG Taiwan 2005 10 A Fast Algorithm for IP Input Cap Characterization 
+
+
+.ic v(a_a_a) = 0 
+.ic v(b_b_b) = 0 
+
+********************************************** 
+
+* Circuit Extraction (Input Setup) 
+********************************************** 
+MXI0-XI113-XI60-XI194-MP2__1 XI0-XI113-XI60-NET115 CLK VCCK VCCK P_18_G2 
+L=0.18U W=2U AD=1.14P AS=0.54P PD=3.14U PS=0.54U 
+MXI0-XI113-XI60-XI194-MP2__2 XI0-XI113-XI60-NET115 CLK VCCK VCCK P_18_G2 
+L=0.18U W=2U AD=0.54P AS=0.54P PD=0.54U PS=0.54U 
+MXI0-XI113-XI60-XI194-MP2__3 XI0-XI113-XI60-NET115 CLK VCCK VCCK P_18_G2 
+L=0.18U W=2U AD=0.54P AS=0.54P PD=0.54U PS=0.54U 
+MXI0-XI113-XI60-XI194-MP2__4 XI0-XI113-XI60-NET115 CLK VCCK VCCK P_18_G2 
+L=0.18U W=2U AD=0.54P AS=0.54P PD=0.54U PS=0.54U 
+MXI0-XI113-XI60-XI194-MN1__1 XI0-XI113-XI60-NET115 CLK XI0-XI113-XI60-XI194NET3 GNDK N_18_G2 L=0.18U W=2U AD=0.54P AS=1.14P PD=0.54U PS=3.14U 
+MXI0-XI113-XI60-XI194-MN1__2 XI0-XI113-XI60-NET115 CLK XI0-XI113-XI60-XI194NET3 GNDK N_18_G2 L=0.18U W=2U AD=0.54P AS=0.54P PD=0.54U PS=0.54U 
+MXI0-XI113-XI60-XI194-MN1__3 XI0-XI113-XI60-NET115 CLK XI0-XI113-XI60-XI194NET3 GNDK N_18_G2 L=0.18U W=2U AD=0.54P AS=0.54P PD=0.54U PS=0.54U 
+MXI0-XI113-XI60-XI194-MN1__4 XI0-XI113-XI60-NET115 CLK XI0-XI113-XI60-XI194NET3 GNDK N_18_G2 L=0.18U W=2U AD=0.54P AS=0.54P PD=0.54U PS=0.54U 
+********************************************** 
+
+* Output 
+********************************************** 
+.GLOBAL VCC GND 
+VDDK VCCK 0 VP 
+VGNDK GNDK 0 DC 0 
+********************************************** 
+
+* Models 
+********************************************** 
+.prot 
+.lib '/home/hp26b/newasic/fsa0b_v/model/fsa0b_v.mod' PFNF 
+.unprot 
+.temp -40 
+.end 
+
+5.0 Conclusions 
+SNUG Taiwan 2005 11 A Fast Algorithm for IP Input Cap Characterization 
+
+
+The following table shows the rule of thumb of run time and accuracy. 
+
+Method Run time Accuracy 
+Interpolation < seconds ~85% 
+Circuit Extraction Simulation Seconds to minutes 90%-100% 
+IO Instance Based Simulation Minutes to hours > 95% 
+Full Chip Simulation Hours to months 100% or 0% if failed 
+
+The device extraction and the SPICE simulation have been proven to be successful by all the 
+1149 IPs implemented as the test cases. Due to run-time consideration, we cannot compare the 
+accuracy among all these IPs. As a rule of thumb, however, the accuracy is around 90%-100% 
+according to some selected IPs and our designers¡¦ judgment. 
+
+6.0 Acknowledgements 
+The authors would like to thank Faraday for the full and valuable support of this project and Ms. 
+Valerie Shih for the careful review and proofreading of this paper. 
+
+7.0 References 
+[1] Peter H. Chen, Steven Chien, and Jim J. Wang, ¡§Automation of IP Characterization and 
+Function Test by HSPICE and Liberty-API,¡¨ SNUG, Hsinchu, Taiwan, May 2004. 
+[2] Peter H. Chen, Steven Chien, Jim J. Wang, and Steve Tsai, ¡§Method for IP Characterization 
+and Path Finding, and Computer Readable Recording Medium for Storing Program,¡¨ Patent 
+P2004-007-US-A / 13321 usd1 Pending, June 2004. 
+[3] Peter H. Chen, Steven Chien, Jim J. Wang, and Steve Tsai, ¡§Method for IP Characterization 
+and Path Finding, and Computer Readable Recording Medium for Storing Program,¡¨ Patent 
+P2004-007-US-A / 13321 usd1 Pending, June 2004. 
+[4] Peter H. Chen, Harrison Liu, Jerry Hong, Jim H. Wang, and Sam Lee ¡§Hybridization 
+Methodology for Finding Maximum Capacitance of Mixed Signal Design,¡¨ SNUG, San Jose, 
+USA, March 2005. 
+[5] Peter H. Chen, Harrison Liu, Peter Pong, Jim H. Wang, and Jerry Hong, ¡§A Fast Algorithm 
+for IP Input Cap Characterization,¡¨ Patent Pending, January 2005. 
+SNUG Taiwan 2005 12 A Fast Algorithm for IP Input Cap Characterization 
+
+
